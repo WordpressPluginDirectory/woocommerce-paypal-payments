@@ -4,11 +4,11 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9
+class ComposerStaticInit97559eb2b9d8b6f1529d44abd2604f99
 {
     public static $files = array (
-        'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
+        'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         'ad27a566e2c29b3589d96cf971fa8042' => __DIR__ . '/../..' . '/api/order-functions.php',
     );
 
@@ -18,14 +18,16 @@ class ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9
             'WpOop\\WordPress\\' => 16,
             'WooCommerce\\WooCommerce\\Logging\\' => 32,
             'WooCommerce\\PayPalCommerce\\Webhooks\\' => 36,
+            'WooCommerce\\PayPalCommerce\\WcSubscriptions\\' => 43,
             'WooCommerce\\PayPalCommerce\\WcGateway\\' => 37,
             'WooCommerce\\PayPalCommerce\\Vendor\\' => 34,
             'WooCommerce\\PayPalCommerce\\Vaulting\\' => 36,
             'WooCommerce\\PayPalCommerce\\Uninstall\\' => 37,
-            'WooCommerce\\PayPalCommerce\\Subscription\\' => 40,
             'WooCommerce\\PayPalCommerce\\StatusReport\\' => 40,
             'WooCommerce\\PayPalCommerce\\Session\\' => 35,
             'WooCommerce\\PayPalCommerce\\SavedPaymentChecker\\' => 47,
+            'WooCommerce\\PayPalCommerce\\SavePaymentMethods\\' => 46,
+            'WooCommerce\\PayPalCommerce\\PayPalSubscriptions\\' => 47,
             'WooCommerce\\PayPalCommerce\\OrderTracking\\' => 41,
             'WooCommerce\\PayPalCommerce\\Onboarding\\' => 38,
             'WooCommerce\\PayPalCommerce\\Googlepay\\' => 37,
@@ -76,6 +78,10 @@ class ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-webhooks/src',
         ),
+        'WooCommerce\\PayPalCommerce\\WcSubscriptions\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/ppcp-wc-subscriptions/src',
+        ),
         'WooCommerce\\PayPalCommerce\\WcGateway\\' => 
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-wc-gateway/src',
@@ -92,10 +98,6 @@ class ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-uninstall/src',
         ),
-        'WooCommerce\\PayPalCommerce\\Subscription\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/modules/ppcp-subscription/src',
-        ),
         'WooCommerce\\PayPalCommerce\\StatusReport\\' => 
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-status-report/src',
@@ -107,6 +109,14 @@ class ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9
         'WooCommerce\\PayPalCommerce\\SavedPaymentChecker\\' => 
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-saved-payment-checker/src',
+        ),
+        'WooCommerce\\PayPalCommerce\\SavePaymentMethods\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/ppcp-save-payment-methods/src',
+        ),
+        'WooCommerce\\PayPalCommerce\\PayPalSubscriptions\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/ppcp-paypal-subscriptions/src',
         ),
         'WooCommerce\\PayPalCommerce\\OrderTracking\\' => 
         array (
@@ -210,9 +220,9 @@ class ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit373905cbd6b6be5594d85dc5ba0c0af9::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit97559eb2b9d8b6f1529d44abd2604f99::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit97559eb2b9d8b6f1529d44abd2604f99::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit97559eb2b9d8b6f1529d44abd2604f99::$classMap;
 
         }, null, ClassLoader::class);
     }

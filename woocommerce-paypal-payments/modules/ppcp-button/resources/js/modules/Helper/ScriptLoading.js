@@ -64,6 +64,12 @@ export const loadPaypalScript = (config, onLoaded, onError = null) => {
         return;
     }
 
+    // Adds data-user-id-token to script options.
+    const userIdToken = config?.save_payment_methods?.id_token;
+    if(userIdToken) {
+        scriptOptions['data-user-id-token'] = userIdToken;
+    }
+
     // Load PayPal script
     loadScript(scriptOptions)
         .then(callback)
@@ -79,5 +85,13 @@ export const loadPaypalScriptPromise = (config) => {
 export const loadPaypalJsScript = (options, buttons, container) => {
     loadScript(options).then((paypal) => {
         paypal.Buttons(buttons).render(container);
+    });
+}
+
+export const loadPaypalJsScriptPromise = (options) => {
+    return new Promise((resolve, reject) => {
+        loadScript(options)
+            .then(resolve)
+            .catch(reject);
     });
 }
