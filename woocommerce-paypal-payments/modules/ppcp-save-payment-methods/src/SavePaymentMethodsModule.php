@@ -11,7 +11,6 @@ namespace WooCommerce\PayPalCommerce\SavePaymentMethods;
 
 use Psr\Log\LoggerInterface;
 use WC_Order;
-use WC_Payment_Tokens;
 use WooCommerce\PayPalCommerce\ApiClient\Authentication\UserIdToken;
 use WooCommerce\PayPalCommerce\ApiClient\Endpoint\PaymentTokensEndpoint;
 use WooCommerce\PayPalCommerce\ApiClient\Entity\Order;
@@ -29,6 +28,7 @@ use WooCommerce\PayPalCommerce\Vendor\Psr\Container\ContainerInterface;
 use WooCommerce\PayPalCommerce\WcGateway\Gateway\CreditCardGateway;
 use WooCommerce\PayPalCommerce\WcGateway\Gateway\PayPalGateway;
 use WooCommerce\PayPalCommerce\WcGateway\Settings\Settings;
+use WooCommerce\PayPalCommerce\WcSubscriptions\Endpoint\SubscriptionChangePaymentMethod;
 
 /**
  * Class SavePaymentMethodsModule
@@ -79,27 +79,6 @@ class SavePaymentMethodsModule implements ModuleInterface {
 		add_filter(
 			'ppcp_create_order_request_body_data',
 			function( array $data, string $payment_method, array $request_data ): array {
-				// phpcs:ignore WordPress.Security.NonceVerification.Missing
-				$wc_order_action = wc_clean( wp_unslash( $_POST['wc_order_action'] ?? '' ) );
-				if ( $wc_order_action === 'wcs_process_renewal' ) {
-					// phpcs:ignore WordPress.Security.NonceVerification.Missing
-					$subscription_id = wc_clean( wp_unslash( $_POST['post_ID'] ?? '' ) );
-					$subscription    = wcs_get_subscription( (int) $subscription_id );
-					if ( $subscription ) {
-						$customer_id = $subscription->get_customer_id();
-						$wc_tokens   = WC_Payment_Tokens::get_customer_tokens( $customer_id, PayPalGateway::ID );
-						foreach ( $wc_tokens as $token ) {
-							$data['payment_source'] = array(
-								'paypal' => array(
-									'vault_id' => $token->get_token(),
-								),
-							);
-
-							return $data;
-						}
-					}
-				}
-
 				if ( $payment_method === CreditCardGateway::ID ) {
 					$save_payment_method = $request_data['save_payment_method'] ?? false;
 					if ( $save_payment_method ) {
@@ -114,6 +93,10 @@ class SavePaymentMethodsModule implements ModuleInterface {
 						);
 
 						$target_customer_id = get_user_meta( get_current_user_id(), '_ppcp_target_customer_id', true );
+						if ( ! $target_customer_id ) {
+							$target_customer_id = get_user_meta( get_current_user_id(), 'ppcp_customer_id', true );
+						}
+
 						if ( $target_customer_id ) {
 							$data['payment_source']['card']['attributes']['customer'] = array(
 								'id' => $target_customer_id,
@@ -123,16 +106,31 @@ class SavePaymentMethodsModule implements ModuleInterface {
 				}
 
 				if ( $payment_method === PayPalGateway::ID ) {
-					$data['payment_source'] = array(
-						'paypal' => array(
-							'attributes' => array(
-								'vault' => array(
-									'store_in_vault' => 'ON_SUCCESS',
-									'usage_type'     => 'MERCHANT',
+					$funding_source = $request_data['funding_source'] ?? null;
+
+					if ( $funding_source && $funding_source === 'venmo' ) {
+						$data['payment_source'] = array(
+							'venmo' => array(
+								'attributes' => array(
+									'vault' => array(
+										'store_in_vault' => 'ON_SUCCESS',
+										'usage_type'     => 'MERCHANT',
+									),
 								),
 							),
-						),
-					);
+						);
+					} else {
+						$data['payment_source'] = array(
+							'paypal' => array(
+								'attributes' => array(
+									'vault' => array(
+										'store_in_vault' => 'ON_SUCCESS',
+										'usage_type'     => 'MERCHANT',
+									),
+								),
+							),
+						);
+					}
 				}
 
 				return $data;
@@ -189,13 +187,12 @@ class SavePaymentMethodsModule implements ModuleInterface {
 		);
 
 		add_filter( 'woocommerce_paypal_payments_disable_add_payment_method', '__return_false' );
-		add_filter( 'woocommerce_paypal_payments_subscription_renewal_return_before_create_order_without_token', '__return_false' );
 		add_filter( 'woocommerce_paypal_payments_should_render_card_custom_fields', '__return_false' );
 
 		add_action(
 			'wp_enqueue_scripts',
 			function() use ( $c ) {
-				if ( ! is_user_logged_in() || ! $this->is_add_payment_method_page() ) {
+				if ( ! is_user_logged_in() || ! ( $this->is_add_payment_method_page() || $this->is_subscription_change_payment_method_page() ) ) {
 					return;
 				}
 
@@ -215,6 +212,9 @@ class SavePaymentMethodsModule implements ModuleInterface {
 					$target_customer_id = '';
 					if ( is_user_logged_in() ) {
 						$target_customer_id = get_user_meta( get_current_user_id(), '_ppcp_target_customer_id', true );
+						if ( ! $target_customer_id ) {
+							$target_customer_id = get_user_meta( get_current_user_id(), 'ppcp_customer_id', true );
+						}
 					}
 
 					$id_token = $api->id_token( $target_customer_id );
@@ -223,17 +223,22 @@ class SavePaymentMethodsModule implements ModuleInterface {
 					assert( $settings instanceof Settings );
 					$verification_method = $settings->has( '3d_secure_contingency' ) ? $settings->get( '3d_secure_contingency' ) : '';
 
+					$change_payment_method = wc_clean( wp_unslash( $_GET['change_payment_method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
+
 					wp_localize_script(
 						'ppcp-add-payment-method',
 						'ppcp_add_payment_method',
 						array(
-							'client_id'            => $c->get( 'button.client_id' ),
-							'merchant_id'          => $c->get( 'api.merchant_id' ),
-							'id_token'             => $id_token,
-							'payment_methods_page' => wc_get_account_endpoint_url( 'payment-methods' ),
-							'error_message'        => __( 'Could not save payment method.', 'woocommerce-paypal-payments' ),
-							'verification_method'  => $verification_method,
-							'ajax'                 => array(
+							'client_id'               => $c->get( 'button.client_id' ),
+							'merchant_id'             => $c->get( 'api.merchant_id' ),
+							'id_token'                => $id_token,
+							'payment_methods_page'    => wc_get_account_endpoint_url( 'payment-methods' ),
+							'view_subscriptions_page' => wc_get_account_endpoint_url( 'view-subscription' ),
+							'is_subscription_change_payment_page' => $this->is_subscription_change_payment_method_page(),
+							'subscription_id_to_change_payment' => $this->is_subscription_change_payment_method_page() ? (int) $change_payment_method : 0,
+							'error_message'           => __( 'Could not save payment method.', 'woocommerce-paypal-payments' ),
+							'verification_method'     => $verification_method,
+							'ajax'                    => array(
 								'create_setup_token'   => array(
 									'endpoint' => \WC_AJAX::get_endpoint( CreateSetupToken::ENDPOINT ),
 									'nonce'    => wp_create_nonce( CreateSetupToken::nonce() ),
@@ -241,6 +246,10 @@ class SavePaymentMethodsModule implements ModuleInterface {
 								'create_payment_token' => array(
 									'endpoint' => \WC_AJAX::get_endpoint( CreatePaymentToken::ENDPOINT ),
 									'nonce'    => wp_create_nonce( CreatePaymentToken::nonce() ),
+								),
+								'subscription_change_payment_method' => array(
+									'endpoint' => \WC_AJAX::get_endpoint( SubscriptionChangePaymentMethod::ENDPOINT ),
+									'nonce'    => wp_create_nonce( SubscriptionChangePaymentMethod::nonce() ),
 								),
 							),
 						)
@@ -335,6 +344,13 @@ class SavePaymentMethodsModule implements ModuleInterface {
 				$endpoint->handle_request();
 			}
 		);
+
+		add_filter(
+			'woocommerce_paypal_payments_save_payment_methods_eligible',
+			function() {
+				return true;
+			}
+		);
 	}
 
 	/**
@@ -354,6 +370,9 @@ class SavePaymentMethodsModule implements ModuleInterface {
 			$target_customer_id = '';
 			if ( is_user_logged_in() ) {
 				$target_customer_id = get_user_meta( get_current_user_id(), '_ppcp_target_customer_id', true );
+				if ( ! $target_customer_id ) {
+					$target_customer_id = get_user_meta( get_current_user_id(), 'ppcp_customer_id', true );
+				}
 			}
 
 			$id_token                                      = $api->id_token( $target_customer_id );

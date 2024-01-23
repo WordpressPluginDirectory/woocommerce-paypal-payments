@@ -4,7 +4,7 @@ Tags: woocommerce, paypal, payments, ecommerce, checkout, cart, pay later, apple
 Requires at least: 5.3
 Tested up to: 6.4
 Requires PHP: 7.2
-Stable tag: 2.4.3
+Stable tag: 2.5.0
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -178,6 +178,21 @@ If you encounter issues with the PayPal buttons not appearing after an update, p
 6. Main settings screen.
 
 == Changelog ==
+
+= 2.5.0 - 2024-01-22 =
+* Fix - WC Subscriptions change subscription payment #1953
+* Fix - GooglePay and ApplePay buttons disappear from the minicart when adding a product to the cart on the shop page #1915
+* Enhancement - Enable Vault v3 and Card Fields by default for US merchants #1967
+* Enhancement - Vault v3 WC Subscriptions integration #1920
+* Enhancement - Implement early WC validation for Hosted Card Fields #1925
+* Enhancement - Rename button locations #1946
+* Enhancement - Improve Apple Pay validation notice text #1938
+* Enhancement - Improve feature availability check UX #1941
+* Enhancement - Make all hosted card fields strings translatable #1926
+* Enhancement - PHP 8.2 deprecations #1939
+* Enhancement - Subscription support on Block Cart & Block Express Checkout #1956
+* Enhancement - Venmo Vaulting integration #1958
+* Enhancement - Add package tracking support for UK #1970
 
 = 2.4.3 - 2024-01-04 =
 * Fix - PayPal Subscription initiated without a WooCommerce order #1907
