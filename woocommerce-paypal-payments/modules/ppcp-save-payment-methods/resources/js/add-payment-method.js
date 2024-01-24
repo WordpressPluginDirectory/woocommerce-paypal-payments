@@ -28,14 +28,6 @@ document.addEventListener(
             init()
         });
 
-        if(ppcp_add_payment_method.is_subscription_change_payment_page) {
-            const saveToAccount = document.querySelector('#wc-ppcp-credit-card-gateway-new-payment-method');
-            if(saveToAccount) {
-                saveToAccount.checked = true;
-                saveToAccount.disabled = true;
-            }
-        }
-
         setTimeout(() => {
             loadScript({
                 clientId: ppcp_add_payment_method.client_id,
@@ -46,57 +38,54 @@ document.addEventListener(
                 .then((paypal) => {
                     errorHandler.clear();
 
-                    const paypalButtonContainer = document.querySelector(`#ppc-button-${PaymentMethods.PAYPAL}-save-payment-method`);
-                    if(paypalButtonContainer) {
-                        paypal.Buttons(
-                            {
-                                createVaultSetupToken: async () => {
-                                    const response = await fetch(ppcp_add_payment_method.ajax.create_setup_token.endpoint, {
-                                        method: "POST",
-                                        credentials: 'same-origin',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({
-                                            nonce: ppcp_add_payment_method.ajax.create_setup_token.nonce,
-                                        })
+                    paypal.Buttons(
+                        {
+                            createVaultSetupToken: async () => {
+                                const response = await fetch(ppcp_add_payment_method.ajax.create_setup_token.endpoint, {
+                                    method: "POST",
+                                    credentials: 'same-origin',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        nonce: ppcp_add_payment_method.ajax.create_setup_token.nonce,
                                     })
+                                })
 
-                                    const result = await response.json()
-                                    if (result.data.id) {
-                                        return result.data.id
-                                    }
-
-                                    errorHandler.message(ppcp_add_payment_method.error_message);
-                                },
-                                onApprove: async ({vaultSetupToken}) => {
-                                    const response = await fetch(ppcp_add_payment_method.ajax.create_payment_token.endpoint, {
-                                        method: "POST",
-                                        credentials: 'same-origin',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({
-                                            nonce: ppcp_add_payment_method.ajax.create_payment_token.nonce,
-                                            vault_setup_token: vaultSetupToken,
-                                        })
-                                    })
-
-                                    const result = await response.json();
-                                    if(result.success === true) {
-                                        window.location.href = ppcp_add_payment_method.payment_methods_page;
-                                        return;
-                                    }
-
-                                    errorHandler.message(ppcp_add_payment_method.error_message);
-                                },
-                                onError: (error) => {
-                                    console.error(error)
-                                    errorHandler.message(ppcp_add_payment_method.error_message);
+                                const result = await response.json()
+                                if (result.data.id) {
+                                    return result.data.id
                                 }
+
+                                errorHandler.message(ppcp_add_payment_method.error_message);
                             },
-                        ).render(`#ppc-button-${PaymentMethods.PAYPAL}-save-payment-method`);
-                    }
+                            onApprove: async ({vaultSetupToken}) => {
+                                const response = await fetch(ppcp_add_payment_method.ajax.create_payment_token.endpoint, {
+                                    method: "POST",
+                                    credentials: 'same-origin',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        nonce: ppcp_add_payment_method.ajax.create_payment_token.nonce,
+                                        vault_setup_token: vaultSetupToken,
+                                    })
+                                })
+
+                                const result = await response.json();
+                                if(result.success === true) {
+                                    window.location.href = ppcp_add_payment_method.payment_methods_page;
+                                    return;
+                                }
+
+                                errorHandler.message(ppcp_add_payment_method.error_message);
+                            },
+                            onError: (error) => {
+                                console.error(error)
+                                errorHandler.message(ppcp_add_payment_method.error_message);
+                            }
+                        },
+                    ).render(`#ppc-button-${PaymentMethods.PAYPAL}-save-payment-method`);
 
                     const cardField = paypal.CardFields({
                         createVaultSetupToken: async () => {
@@ -136,33 +125,6 @@ document.addEventListener(
 
                             const result = await response.json();
                             if(result.success === true) {
-                                if(ppcp_add_payment_method.is_subscription_change_payment_page) {
-                                    const subscriptionId = ppcp_add_payment_method.subscription_id_to_change_payment;
-                                    if(subscriptionId && result.data) {
-                                        const req = await fetch(ppcp_add_payment_method.ajax.subscription_change_payment_method.endpoint, {
-                                            method: "POST",
-                                            credentials: 'same-origin',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                                nonce: ppcp_add_payment_method.ajax.subscription_change_payment_method.nonce,
-                                                subscription_id: subscriptionId,
-                                                payment_method: getCurrentPaymentMethod(),
-                                                wc_payment_token_id: result.data
-                                            })
-                                        });
-
-                                        const res = await req.json();
-                                        if (res.success === true) {
-                                            window.location.href = `${ppcp_add_payment_method.view_subscriptions_page}/${subscriptionId}`;
-                                            return;
-                                        }
-                                    }
-
-                                    return;
-                                }
-
                                 window.location.href = ppcp_add_payment_method.payment_methods_page;
                                 return;
                             }
@@ -205,15 +167,7 @@ document.addEventListener(
                         }
                     }
 
-                    document.querySelector('#place_order')?.addEventListener("click", (event) => {
-                        const cardPaymentToken = document.querySelector('input[name="wc-ppcp-credit-card-gateway-payment-token"]:checked')?.value;
-                        if (
-                            getCurrentPaymentMethod() !== 'ppcp-credit-card-gateway'
-                            || cardPaymentToken && cardPaymentToken !== 'new'
-                        ) {
-                            return;
-                        }
-
+                    document.querySelector('#place_order').addEventListener("click", (event) => {
                         event.preventDefault();
 
                         cardField.submit()

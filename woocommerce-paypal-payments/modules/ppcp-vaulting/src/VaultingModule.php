@@ -54,11 +54,7 @@ class VaultingModule implements ModuleInterface {
 		$subscription_helper = $container->get( 'wc-subscriptions.helper' );
 		add_action(
 			'woocommerce_created_customer',
-			function( int $customer_id ) use ( $subscription_helper, $container ) {
-				if ( $container->has( 'save-payment-methods.eligible' ) && $container->get( 'save-payment-methods.eligible' ) ) {
-					return;
-				}
-
+			function( int $customer_id ) use ( $subscription_helper ) {
 				$session = WC()->session;
 				if ( ! $session ) {
 					return;

@@ -33,19 +33,15 @@ class SettingsStatus {
 	}
 
 	/**
-	 * Checks whether Pay Later messaging is enabled.
+	 * Check whether Pay Later message is enabled either for checkout, cart or product page.
+	 *
+	 * @return bool true if is enabled, otherwise false.
 	 */
 	public function is_pay_later_messaging_enabled(): bool {
-		return $this->settings->has( 'pay_later_messaging_enabled' ) && $this->settings->get( 'pay_later_messaging_enabled' );
-	}
-
-	/**
-	 * Check whether any Pay Later messaging location is enabled.
-	 */
-	public function has_pay_later_messaging_locations(): bool {
+		$messaging_enabled  = $this->settings->has( 'pay_later_messaging_enabled' ) && $this->settings->get( 'pay_later_messaging_enabled' );
 		$selected_locations = $this->settings->has( 'pay_later_messaging_locations' ) ? $this->settings->get( 'pay_later_messaging_locations' ) : array();
 
-		return ! empty( $selected_locations );
+		return $messaging_enabled && ! empty( $selected_locations );
 	}
 
 	/**
@@ -55,9 +51,7 @@ class SettingsStatus {
 	 * @return bool true if is enabled, otherwise false.
 	 */
 	public function is_pay_later_messaging_enabled_for_location( string $location ): bool {
-		return $this->is_pay_later_messaging_enabled() &&
-			$this->has_pay_later_messaging_locations() &&
-			$this->is_enabled_for_location( 'pay_later_messaging_locations', $location );
+		return $this->is_pay_later_messaging_enabled() && $this->is_enabled_for_location( 'pay_later_messaging_locations', $location );
 	}
 
 	/**
@@ -91,9 +85,6 @@ class SettingsStatus {
 	 * @return bool true if is enabled, otherwise false.
 	 */
 	public function is_smart_button_enabled_for_location( string $location ): bool {
-		if ( $location === 'block-editor' ) {
-			$location = 'checkout-block';
-		}
 		return $this->is_enabled_for_location( 'smart_button_locations', $location );
 	}
 

@@ -40,6 +40,11 @@ const bootstrap = () => {
     );
     const spinner = new Spinner();
 
+    let creditCardRenderer = new HostedFieldsRenderer(PayPalCommerceGateway, errorHandler, spinner);
+    if (typeof paypal.CardFields !== 'undefined') {
+        creditCardRenderer = new CardFieldsRenderer(PayPalCommerceGateway, errorHandler, spinner);
+    }
+
     const formSaver = new FormSaver(
         PayPalCommerceGateway.ajax.save_checkout_form.endpoint,
         PayPalCommerceGateway.ajax.save_checkout_form.nonce,
@@ -68,7 +73,13 @@ const bootstrap = () => {
             && document.querySelector(PayPalCommerceGateway.messages.wrapper);
     }
 
-    const doBasicCheckoutValidation = () => {
+    const onSmartButtonClick = async (data, actions) => {
+        window.ppcpFundingSource = data.fundingSource;
+        const requiredFields = jQuery('form.woocommerce-checkout .validate-required:visible :input');
+        requiredFields.each((i, input) => {
+            jQuery(input).trigger('validate');
+        });
+
         if (PayPalCommerceGateway.basic_checkout_validation_enabled) {
             // A quick fix to get the errors about empty form fields before attempting PayPal order,
             // it should solve #513 for most of the users, but it is not a proper solution.
@@ -106,25 +117,8 @@ const bootstrap = () => {
                     errorHandler.message(PayPalCommerceGateway.labels.error.required.generic);
                 }
 
-                return false;
+                return actions.reject();
             }
-        }
-        return true;
-    };
-
-    const onCardFieldsBeforeSubmit = () => {
-        return doBasicCheckoutValidation();
-    };
-
-    const onSmartButtonClick = async (data, actions) => {
-        window.ppcpFundingSource = data.fundingSource;
-        const requiredFields = jQuery('form.woocommerce-checkout .validate-required:visible :input');
-        requiredFields.each((i, input) => {
-            jQuery(input).trigger('validate');
-        });
-
-        if (!doBasicCheckoutValidation()) {
-            return actions.reject();
         }
 
         const form = document.querySelector(checkoutFormSelector);
@@ -155,12 +149,6 @@ const bootstrap = () => {
         jQuery(document).trigger('ppcp-smart-buttons-init', this);
         buttonsSpinner.unblock();
     };
-
-    let creditCardRenderer = new HostedFieldsRenderer(PayPalCommerceGateway, errorHandler, spinner);
-    if (typeof paypal.CardFields !== 'undefined') {
-        creditCardRenderer = new CardFieldsRenderer(PayPalCommerceGateway, errorHandler, spinner, onCardFieldsBeforeSubmit);
-    }
-
     const renderer = new Renderer(creditCardRenderer, PayPalCommerceGateway, onSmartButtonClick, onSmartButtonsInit);
     const messageRenderer = new MessageRenderer(PayPalCommerceGateway.messages);
 

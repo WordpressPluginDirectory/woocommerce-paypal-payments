@@ -3,7 +3,7 @@ import {cardFieldStyles} from "../Helper/CardFieldsHelper";
 
 class CardFieldsRenderer {
 
-    constructor(defaultConfig, errorHandler, spinner, onCardFieldsBeforeSubmit) {
+    constructor(defaultConfig, errorHandler, spinner) {
         this.defaultConfig = defaultConfig;
         this.errorHandler = errorHandler;
         this.spinner = spinner;
@@ -11,7 +11,6 @@ class CardFieldsRenderer {
         this.formValid = false;
         this.emptyFields = new Set(['number', 'cvv', 'expirationDate']);
         this.currentHostedFieldsInstance = null;
-        this.onCardFieldsBeforeSubmit = onCardFieldsBeforeSubmit;
     }
 
     render(wrapper, contextConfig) {
@@ -56,52 +55,28 @@ class CardFieldsRenderer {
             const nameField = document.getElementById('ppcp-credit-card-gateway-card-name');
             if (nameField) {
                 let styles = cardFieldStyles(nameField);
-                let fieldOptions = {
-                    style: { 'input': styles }
-                }
-                if (nameField.getAttribute('placeholder')) {
-                    fieldOptions.placeholder = nameField.getAttribute('placeholder');
-                }
-                cardField.NameField(fieldOptions).render(nameField.parentNode);
+                cardField.NameField({style: {'input': styles}}).render(nameField.parentNode);
                 nameField.remove();
             }
 
             const numberField = document.getElementById('ppcp-credit-card-gateway-card-number');
             if (numberField) {
                 let styles = cardFieldStyles(numberField);
-                let fieldOptions = {
-                    style: { 'input': styles }
-                }
-                if (numberField.getAttribute('placeholder')) {
-                    fieldOptions.placeholder = numberField.getAttribute('placeholder');
-                }
-                cardField.NumberField(fieldOptions).render(numberField.parentNode);
+                cardField.NumberField({style: {'input': styles}}).render(numberField.parentNode);
                 numberField.remove();
             }
 
             const expiryField = document.getElementById('ppcp-credit-card-gateway-card-expiry');
             if (expiryField) {
                 let styles = cardFieldStyles(expiryField);
-                let fieldOptions = {
-                    style: { 'input': styles }
-                }
-                if (expiryField.getAttribute('placeholder')) {
-                    fieldOptions.placeholder = expiryField.getAttribute('placeholder');
-                }
-                cardField.ExpiryField(fieldOptions).render(expiryField.parentNode);
+                cardField.ExpiryField({style: {'input': styles}}).render(expiryField.parentNode);
                 expiryField.remove();
             }
 
             const cvvField = document.getElementById('ppcp-credit-card-gateway-card-cvc');
             if (cvvField) {
                 let styles = cardFieldStyles(cvvField);
-                let fieldOptions = {
-                    style: { 'input': styles }
-                }
-                if (cvvField.getAttribute('placeholder')) {
-                    fieldOptions.placeholder = cvvField.getAttribute('placeholder');
-                }
-                cardField.CVVField(fieldOptions).render(cvvField.parentNode);
+                cardField.CVVField({style: {'input': styles}}).render(cvvField.parentNode);
                 cvvField.remove();
             }
 
@@ -111,14 +86,6 @@ class CardFieldsRenderer {
         gateWayBox.style.display = oldDisplayStyle;
 
         show(buttonSelector);
-
-        if(this.defaultConfig.cart_contains_subscription) {
-            const saveToAccount = document.querySelector('#wc-ppcp-credit-card-gateway-new-payment-method');
-            if(saveToAccount) {
-                saveToAccount.checked = true;
-                saveToAccount.disabled = true;
-            }
-        }
 
         document.querySelector(buttonSelector).addEventListener("click", (event) => {
             event.preventDefault();
@@ -140,11 +107,6 @@ class CardFieldsRenderer {
                     document.querySelector('#place_order').click();
                 });
 
-                return;
-            }
-
-            if (typeof this.onCardFieldsBeforeSubmit === 'function' && !this.onCardFieldsBeforeSubmit()) {
-                this.spinner.unblock();
                 return;
             }
 

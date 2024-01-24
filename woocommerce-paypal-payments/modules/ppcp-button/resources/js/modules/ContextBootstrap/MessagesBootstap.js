@@ -1,20 +1,13 @@
 import {setVisible} from "../Helper/Hiding";
-import MessageRenderer from "../Renderer/MessageRenderer";
 
 class MessagesBootstrap {
     constructor(gateway, messageRenderer) {
         this.gateway = gateway;
-        this.renderers = [];
+        this.renderer = messageRenderer;
         this.lastAmount = this.gateway.messages.amount;
-        if (messageRenderer) {
-            this.renderers.push(messageRenderer);
-        }
     }
 
     init() {
-        if (this.gateway.messages?.block?.enabled) {
-            this.discoverBlocks();
-        }
         jQuery(document.body).on('ppcp_cart_rendered ppcp_checkout_rendered', () => {
             this.render();
         });
@@ -23,7 +16,7 @@ class MessagesBootstrap {
 
             this.render();
         });
-        jQuery(document.body).on('ppcp_cart_total_updated ppcp_checkout_total_updated ppcp_product_total_updated ppcp_block_cart_total_updated', (e, amount) => {
+        jQuery(document.body).on('ppcp_cart_total_updated ppcp_checkout_total_updated ppcp_product_total_updated', (e, amount) => {
             if (this.lastAmount !== amount) {
                 this.lastAmount = amount;
 
@@ -34,40 +27,28 @@ class MessagesBootstrap {
         this.render();
     }
 
-    discoverBlocks() {
-        Array.from(document.querySelectorAll('.ppcp-paylater-message-block')).forEach(blockElement => {
-            const config = {wrapper: '#' + blockElement.id};
-            if (!blockElement.getAttribute('data-pp-placement')) {
-                config.placement = this.gateway.messages.placement;
-            }
-            this.renderers.push(new MessageRenderer(config));
-        });
-    }
-
-    shouldShow(renderer) {
+    shouldShow() {
         if (this.gateway.messages.is_hidden === true) {
             return false;
         }
 
         const eventData = {result: true}
-        jQuery(document.body).trigger('ppcp_should_show_messages', [eventData, renderer.config.wrapper]);
+        jQuery(document.body).trigger('ppcp_should_show_messages', [eventData]);
         return eventData.result;
     }
 
+    shouldRender() {
+        return this.shouldShow() && this.renderer.shouldRender();
+    }
+
     render() {
-        this.renderers.forEach(renderer => {
-            const shouldShow = this.shouldShow(renderer);
-            setVisible(renderer.config.wrapper, shouldShow);
-            if (!shouldShow) {
-                return;
-            }
+        setVisible(this.gateway.messages.wrapper, this.shouldShow());
 
-            if (!renderer.shouldRender()) {
-                return;
-            }
+        if (!this.shouldRender()) {
+            return;
+        }
 
-            renderer.renderWithAmount(this.lastAmount);
-        });
+        this.renderer.renderWithAmount(this.lastAmount);
     }
 }
 

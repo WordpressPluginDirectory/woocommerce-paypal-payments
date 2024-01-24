@@ -28,7 +28,6 @@ class ComposerStaticInit97559eb2b9d8b6f1529d44abd2604f99
             'WooCommerce\\PayPalCommerce\\SavedPaymentChecker\\' => 47,
             'WooCommerce\\PayPalCommerce\\SavePaymentMethods\\' => 46,
             'WooCommerce\\PayPalCommerce\\PayPalSubscriptions\\' => 47,
-            'WooCommerce\\PayPalCommerce\\PayLaterBlock\\' => 41,
             'WooCommerce\\PayPalCommerce\\OrderTracking\\' => 41,
             'WooCommerce\\PayPalCommerce\\Onboarding\\' => 38,
             'WooCommerce\\PayPalCommerce\\Googlepay\\' => 37,
@@ -118,10 +117,6 @@ class ComposerStaticInit97559eb2b9d8b6f1529d44abd2604f99
         'WooCommerce\\PayPalCommerce\\PayPalSubscriptions\\' => 
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-paypal-subscriptions/src',
-        ),
-        'WooCommerce\\PayPalCommerce\\PayLaterBlock\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/modules/ppcp-paylater-block/src',
         ),
         'WooCommerce\\PayPalCommerce\\OrderTracking\\' => 
         array (

@@ -56,12 +56,10 @@ export const loadPaypalScript = (config, onLoaded, onError = null) => {
 
     // Build the PayPal script options.
     let scriptOptions = keysToCamelCase(config.url_params);
-    if (config.script_attributes) {
-        scriptOptions = merge(scriptOptions, config.script_attributes);
-    }
+    scriptOptions = merge(scriptOptions, config.script_attributes);
 
     // Load PayPal script for special case with data-client-token
-    if (config.data_client_id?.set_attribute) {
+    if (config.data_client_id.set_attribute) {
         dataClientIdAttributeHandler(scriptOptions, config.data_client_id, callback, errorCallback);
         return;
     }
