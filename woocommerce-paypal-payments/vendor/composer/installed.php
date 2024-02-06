@@ -3,7 +3,7 @@
         'name' => 'woocommerce/woocommerce-paypal-payments',
         'pretty_version' => 'dev-trunk',
         'version' => 'dev-trunk',
-        'reference' => '1bcaf73cd708907b43e3e6411545e42d0c097722',
+        'reference' => 'bcbcd4aa94143bd16e7222e1a50b40e18101dc59',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -112,7 +112,7 @@
         'woocommerce/woocommerce-paypal-payments' => array(
             'pretty_version' => 'dev-trunk',
             'version' => 'dev-trunk',
-            'reference' => '1bcaf73cd708907b43e3e6411545e42d0c097722',
+            'reference' => 'bcbcd4aa94143bd16e7222e1a50b40e18101dc59',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
