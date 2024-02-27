@@ -3,7 +3,7 @@
         'name' => 'woocommerce/woocommerce-paypal-payments',
         'pretty_version' => 'dev-trunk',
         'version' => 'dev-trunk',
-        'reference' => 'bcbcd4aa94143bd16e7222e1a50b40e18101dc59',
+        'reference' => 'a06da46e33e7bdaf525cebca5aee7413d67979ca',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'container-interop/service-provider' => array(
-            'pretty_version' => 'v0.4.0',
-            'version' => '0.4.0.0',
-            'reference' => '4969b9e49460690b7430b3f1a87cab07be61418a',
+            'pretty_version' => 'v0.4.1',
+            'version' => '0.4.1.0',
+            'reference' => 'e04441ca21ef03e10dce70b0af29269281eec6dc',
             'type' => 'library',
             'install_path' => __DIR__ . '/../container-interop/service-provider',
             'aliases' => array(),
@@ -92,9 +92,9 @@
             'dev_requirement' => false,
         ),
         'symfony/polyfill-php80' => array(
-            'pretty_version' => 'v1.27.0',
-            'version' => '1.27.0.0',
-            'reference' => '7a6ff3f1959bb01aefccb463a0f2cd3d3d2fd936',
+            'pretty_version' => 'v1.29.0',
+            'version' => '1.29.0.0',
+            'reference' => '87b68208d5c1188808dd7839ee1e6c8ec3b02f1b',
             'type' => 'library',
             'install_path' => __DIR__ . '/../symfony/polyfill-php80',
             'aliases' => array(),
@@ -112,7 +112,7 @@
         'woocommerce/woocommerce-paypal-payments' => array(
             'pretty_version' => 'dev-trunk',
             'version' => 'dev-trunk',
-            'reference' => 'bcbcd4aa94143bd16e7222e1a50b40e18101dc59',
+            'reference' => 'a06da46e33e7bdaf525cebca5aee7413d67979ca',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

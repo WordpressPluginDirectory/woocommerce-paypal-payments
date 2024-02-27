@@ -417,7 +417,7 @@ return array(
 		return new PaymentsFactory( $authorizations_factory, $capture_factory, $refund_factory );
 	},
 	'api.factory.authorization'                      => static function ( ContainerInterface $container ): AuthorizationFactory {
-		return new AuthorizationFactory();
+		return new AuthorizationFactory( $container->get( 'api.factory.fraud-processor-response' ) );
 	},
 	'api.factory.exchange-rate'                      => static function ( ContainerInterface $container ): ExchangeRateFactory {
 		return new ExchangeRateFactory();
@@ -603,6 +603,30 @@ return array(
 			'woocommerce_paypal_payments_supported_country_currency_matrix',
 			array(
 				'AU' => array(
+					'AUD',
+					'BRL',
+					'CAD',
+					'CHF',
+					'CZK',
+					'DKK',
+					'EUR',
+					'GBP',
+					'HKD',
+					'HUF',
+					'ILS',
+					'JPY',
+					'MXN',
+					'NOK',
+					'NZD',
+					'PHP',
+					'PLN',
+					'SEK',
+					'SGD',
+					'THB',
+					'TWD',
+					'USD',
+				),
+				'AT' => array(
 					'AUD',
 					'BRL',
 					'CAD',
@@ -891,6 +915,30 @@ return array(
 					'USD',
 				),
 				'HU' => array(
+					'AUD',
+					'BRL',
+					'CAD',
+					'CHF',
+					'CZK',
+					'DKK',
+					'EUR',
+					'GBP',
+					'HKD',
+					'HUF',
+					'ILS',
+					'JPY',
+					'MXN',
+					'NOK',
+					'NZD',
+					'PHP',
+					'PLN',
+					'SEK',
+					'SGD',
+					'THB',
+					'TWD',
+					'USD',
+				),
+				'IE' => array(
 					'AUD',
 					'BRL',
 					'CAD',
@@ -1310,11 +1358,28 @@ return array(
 					'USD',
 				),
 				'NO' => array(
-					'EUR',
-					'USD',
+					'AUD',
+					'BRL',
 					'CAD',
+					'CHF',
+					'CZK',
+					'DKK',
+					'EUR',
 					'GBP',
+					'HKD',
+					'HUF',
+					'ILS',
+					'JPY',
+					'MXN',
 					'NOK',
+					'NZD',
+					'PHP',
+					'PLN',
+					'SEK',
+					'SGD',
+					'THB',
+					'TWD',
+					'USD',
 				),
 			)
 		);
@@ -1334,6 +1399,11 @@ return array(
 					'mastercard' => array(),
 					'visa'       => array(),
 					'amex'       => array( 'AUD' ),
+				),
+				'AT' => array(
+					'mastercard' => array(),
+					'visa'       => array(),
+					'amex'       => array(),
 				),
 				'BE' => array(
 					'mastercard' => array(),
@@ -1400,6 +1470,11 @@ return array(
 					'visa'       => array(),
 					'amex'       => array( 'HUF' ),
 				),
+				'IE' => array(
+					'mastercard' => array(),
+					'visa'       => array(),
+					'amex'       => array(),
+				),
 				'IT' => array(
 					'mastercard' => array(),
 					'visa'       => array(),
@@ -1416,6 +1491,11 @@ return array(
 					'visa'       => array(),
 					'amex'       => array( 'CAD' ),
 					'jcb'        => array( 'CAD' ),
+				),
+				'LI' => array(
+					'mastercard' => array(),
+					'visa'       => array(),
+					'amex'       => array(),
 				),
 				'LT' => array(
 					'mastercard' => array(),
@@ -1450,7 +1530,7 @@ return array(
 				'NO' => array(
 					'mastercard' => array(),
 					'visa'       => array(),
-					'amex'       => array( 'NOK' ),
+					'amex'       => array(),
 				),
 				'PL' => array(
 					'mastercard' => array(),
