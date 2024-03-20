@@ -821,7 +821,6 @@ return array(
 	},
 	'save-payment-methods.endpoint.capture-card-payment' => static function( ContainerInterface $container ): CaptureCardPayment {
 		return new CaptureCardPayment(
-			$container->get( 'button.request-data' ),
 			$container->get( 'api.host' ),
 			$container->get( 'api.bearer' ),
 			$container->get( 'api.factory.order' ),
@@ -829,6 +828,7 @@ return array(
 			$container->get( 'api.endpoint.order' ),
 			$container->get( 'session.handler' ),
 			$container->get( 'wc-subscriptions.helpers.real-time-account-updater' ),
+			$container->get( 'wcgateway.settings' ),
 			$container->get( 'woocommerce.logger.woocommerce' )
 		);
 	},

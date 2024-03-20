@@ -631,7 +631,7 @@ document.querySelector("#payment").before(document.querySelector("#ppcp-messages
 
 		$messaging_enabled_for_current_location = $this->settings_status->is_pay_later_messaging_enabled_for_location( $location );
 
-		$has_paylater_block = has_block( 'woocommerce-paypal-payments/paylater-messages' ) && PayLaterBlockModule::is_enabled();
+		$has_paylater_block = has_block( 'woocommerce-paypal-payments/paylater-messages' ) && PayLaterBlockModule::is_block_enabled( $this->settings_status );
 
 		switch ( $location ) {
 			case 'checkout':
@@ -872,12 +872,13 @@ document.querySelector("#payment").before(document.querySelector("#ppcp-messages
 		$text_color    = $this->settings->has( "{$setting_name_prefix}_color" ) ? $this->settings->get( "{$setting_name_prefix}_color" ) : 'black';
 		$style_color   = $this->settings->has( "{$setting_name_prefix}_flex_color" ) ? $this->settings->get( "{$setting_name_prefix}_flex_color" ) : 'blue';
 		$ratio         = $this->settings->has( "{$setting_name_prefix}_flex_ratio" ) ? $this->settings->get( "{$setting_name_prefix}_flex_ratio" ) : '1x1';
+		$text_size     = $this->settings->has( "{$setting_name_prefix}_text_size" ) ? $this->settings->get( "{$setting_name_prefix}_text_size" ) : '12';
 
 		return array(
 			'wrapper'   => '#ppcp-messages',
 			'is_hidden' => ! $this->is_pay_later_filter_enabled_for_location( $this->context() ),
 			'block'     => array(
-				'enabled' => PayLaterBlockModule::is_enabled(),
+				'enabled' => PayLaterBlockModule::is_block_enabled( $this->settings_status ),
 			),
 			'amount'    => $amount,
 			'placement' => $placement,
@@ -889,6 +890,7 @@ document.querySelector("#payment").before(document.querySelector("#ppcp-messages
 				),
 				'text'   => array(
 					'color' => $text_color,
+					'size'  => $text_size,
 				),
 				'color'  => $style_color,
 				'ratio'  => $ratio,
@@ -948,7 +950,10 @@ document.querySelector("#payment").before(document.querySelector("#ppcp-messages
 	 * @return bool
 	 */
 	private function has_subscriptions(): bool {
-		if ( ! $this->subscription_helper->accept_only_automatic_payment_gateways() ) {
+		if (
+			! $this->subscription_helper->accept_only_automatic_payment_gateways()
+			&& $this->paypal_subscriptions_enabled() !== true
+		) {
 			return false;
 		}
 		if ( is_product() ) {

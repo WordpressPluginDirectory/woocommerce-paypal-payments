@@ -13,11 +13,16 @@ use Exception;
 use Psr\Log\LoggerInterface;
 use WC_Order;
 use WC_Payment_Tokens;
+use WooCommerce\PayPalCommerce\ApiClient\Endpoint\OrderEndpoint;
 use WooCommerce\PayPalCommerce\ApiClient\Endpoint\PaymentsEndpoint;
 use WooCommerce\PayPalCommerce\ApiClient\Exception\PayPalApiException;
 use WooCommerce\PayPalCommerce\ApiClient\Exception\RuntimeException;
+use WooCommerce\PayPalCommerce\Onboarding\Environment;
 use WooCommerce\PayPalCommerce\Onboarding\State;
+use WooCommerce\PayPalCommerce\SavePaymentMethods\Endpoint\CaptureCardPayment;
 use WooCommerce\PayPalCommerce\Session\SessionHandler;
+use WooCommerce\PayPalCommerce\WcGateway\Processor\AuthorizedPaymentsProcessor;
+use WooCommerce\PayPalCommerce\WcGateway\Processor\PaymentsStatusHandlingTrait;
 use WooCommerce\PayPalCommerce\WcGateway\Processor\TransactionIdHandlingTrait;
 use WooCommerce\PayPalCommerce\WcSubscriptions\Helper\SubscriptionHelper;
 use WooCommerce\PayPalCommerce\Vaulting\PaymentTokenRepository;
@@ -33,7 +38,7 @@ use WooCommerce\PayPalCommerce\Vendor\Psr\Container\ContainerInterface;
  */
 class CreditCardGateway extends \WC_Payment_Gateway_CC {
 
-	use ProcessPaymentTrait, GatewaySettingsRendererTrait, TransactionIdHandlingTrait;
+	use ProcessPaymentTrait, GatewaySettingsRendererTrait, TransactionIdHandlingTrait, PaymentsStatusHandlingTrait;
 
 	const ID = 'ppcp-credit-card-gateway';
 
@@ -115,18 +120,46 @@ class CreditCardGateway extends \WC_Payment_Gateway_CC {
 	protected $subscription_helper;
 
 	/**
-	 * The logger.
-	 *
-	 * @var LoggerInterface
-	 */
-	protected $logger;
-
-	/**
 	 * The payments endpoint
 	 *
 	 * @var PaymentsEndpoint
 	 */
 	protected $payments_endpoint;
+
+	/**
+	 * The environment.
+	 *
+	 * @var Environment
+	 */
+	private $environment;
+
+	/**
+	 * The order endpoint.
+	 *
+	 * @var OrderEndpoint
+	 */
+	private $order_endpoint;
+
+	/**
+	 * Capture card payment.
+	 *
+	 * @var CaptureCardPayment
+	 */
+	private $capture_card_payment;
+
+	/**
+	 * The prefix.
+	 *
+	 * @var string
+	 */
+	private $prefix;
+
+	/**
+	 * The logger.
+	 *
+	 * @var LoggerInterface
+	 */
+	protected $logger;
 
 	/**
 	 * CreditCardGateway constructor.
@@ -140,9 +173,13 @@ class CreditCardGateway extends \WC_Payment_Gateway_CC {
 	 * @param State                    $state The state.
 	 * @param TransactionUrlProvider   $transaction_url_provider Service able to provide view transaction url base.
 	 * @param SubscriptionHelper       $subscription_helper The subscription helper.
-	 * @param LoggerInterface          $logger The logger.
 	 * @param PaymentsEndpoint         $payments_endpoint The payments endpoint.
 	 * @param VaultedCreditCardHandler $vaulted_credit_card_handler The vaulted credit card handler.
+	 * @param Environment              $environment The environment.
+	 * @param OrderEndpoint            $order_endpoint The order endpoint.
+	 * @param CaptureCardPayment       $capture_card_payment Capture card payment.
+	 * @param string                   $prefix The prefix.
+	 * @param LoggerInterface          $logger The logger.
 	 */
 	public function __construct(
 		SettingsRenderer $settings_renderer,
@@ -154,9 +191,13 @@ class CreditCardGateway extends \WC_Payment_Gateway_CC {
 		State $state,
 		TransactionUrlProvider $transaction_url_provider,
 		SubscriptionHelper $subscription_helper,
-		LoggerInterface $logger,
 		PaymentsEndpoint $payments_endpoint,
-		VaultedCreditCardHandler $vaulted_credit_card_handler
+		VaultedCreditCardHandler $vaulted_credit_card_handler,
+		Environment $environment,
+		OrderEndpoint $order_endpoint,
+		CaptureCardPayment $capture_card_payment,
+		string $prefix,
+		LoggerInterface $logger
 	) {
 		$this->id                          = self::ID;
 		$this->settings_renderer           = $settings_renderer;
@@ -168,9 +209,13 @@ class CreditCardGateway extends \WC_Payment_Gateway_CC {
 		$this->state                       = $state;
 		$this->transaction_url_provider    = $transaction_url_provider;
 		$this->subscription_helper         = $subscription_helper;
-		$this->logger                      = $logger;
 		$this->payments_endpoint           = $payments_endpoint;
 		$this->vaulted_credit_card_handler = $vaulted_credit_card_handler;
+		$this->environment                 = $environment;
+		$this->order_endpoint              = $order_endpoint;
+		$this->capture_card_payment        = $capture_card_payment;
+		$this->prefix                      = $prefix;
+		$this->logger                      = $logger;
 
 		if ( $state->current_state() === State::STATE_ONBOARDED ) {
 			$this->supports = array( 'refunds' );
@@ -366,17 +411,38 @@ class CreditCardGateway extends \WC_Payment_Gateway_CC {
 			);
 		}
 
-		$saved_payment_card = WC()->session->get( 'ppcp_saved_payment_card' );
-		if ( $saved_payment_card ) {
-			if ( $saved_payment_card['payment_source'] === 'card' && $saved_payment_card['status'] === 'COMPLETED' ) {
-				$wc_order->update_meta_data( PayPalGateway::ORDER_ID_META_KEY, $saved_payment_card['order_id'] );
-				$wc_order->save_meta_data();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$card_payment_token_id = wc_clean( wp_unslash( $_POST['wc-ppcp-credit-card-gateway-payment-token'] ?? '' ) );
+		if ( $card_payment_token_id ) {
+			$tokens = WC_Payment_Tokens::get_customer_tokens( get_current_user_id() );
+			foreach ( $tokens as $token ) {
+				if ( $token->get_id() === (int) $card_payment_token_id ) {
+					$custom_id    = $wc_order->get_order_number();
+					$invoice_id   = $this->prefix . $wc_order->get_order_number();
+					$create_order = $this->capture_card_payment->create_order( $token->get_token(), $custom_id, $invoice_id );
 
-				$this->update_transaction_id( $saved_payment_card['order_id'], $wc_order );
-				$wc_order->payment_complete();
-				WC()->session->set( 'ppcp_saved_payment_card', null );
+					$order = $this->order_endpoint->order( $create_order->id );
+					$wc_order->update_meta_data( PayPalGateway::INTENT_META_KEY, $order->intent() );
 
-				return $this->handle_payment_success( $wc_order );
+					if ( $order->intent() === 'AUTHORIZE' ) {
+						$order = $this->order_endpoint->authorize( $order );
+
+						$wc_order->update_meta_data( AuthorizedPaymentsProcessor::CAPTURED_META_KEY, 'false' );
+
+						if ( $this->subscription_helper->has_subscription( $wc_order->get_id() ) ) {
+							$wc_order->update_meta_data( '_ppcp_captured_vault_webhook', 'false' );
+						}
+					}
+
+					$transaction_id = $this->get_paypal_order_transaction_id( $order );
+					if ( $transaction_id ) {
+						$this->update_transaction_id( $transaction_id, $wc_order );
+					}
+
+					$this->handle_new_order_status( $order, $wc_order );
+
+					return $this->handle_payment_success( $wc_order );
+				}
 			}
 		}
 
