@@ -40,7 +40,7 @@ class PayLaterBlockModule implements ModuleInterface {
 	 * @return bool true if the block is enabled, otherwise false.
 	 */
 	public static function is_block_enabled( SettingsStatus $settings_status ): bool {
-		return self::is_module_loading_required() && $settings_status->is_pay_later_messaging_enabled_for_location( 'woocommerceBlock' );
+		return self::is_module_loading_required() && $settings_status->is_pay_later_messaging_enabled_for_location( 'custom_placement' );
 	}
 
 	/**
@@ -99,7 +99,23 @@ class PayLaterBlockModule implements ModuleInterface {
 				 *
 				 * @psalm-suppress PossiblyFalseArgument
 				 */
-				register_block_type( dirname( realpath( __FILE__ ), 2 ) );
+				register_block_type(
+					dirname( realpath( __FILE__ ), 2 ),
+					array(
+						'render_callback' => function ( array $attributes ) use ( $c ) {
+							$renderer = $c->get( 'paylater-block.renderer' );
+							ob_start();
+							// phpcs:ignore -- No need to escape it, the PayLaterBlockRenderer class is responsible for escaping.
+							echo $renderer->render(
+								// phpcs:ignore
+								$attributes,
+								// phpcs:ignore
+								$c
+							);
+							return ob_get_clean();
+						},
+					)
+				);
 			},
 			20
 		);

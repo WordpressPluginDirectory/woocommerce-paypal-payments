@@ -7,17 +7,22 @@ import {
     paypalSubscriptionToWcAddresses
 } from "./Helper/Address";
 import {
+    convertKeysToSnakeCase
+} from "./Helper/Helper";
+import {
     cartHasSubscriptionProducts,
     isPayPalSubscription
 } from "./Helper/Subscription";
 import {
     loadPaypalScriptPromise
 } from '../../../ppcp-button/resources/js/modules/Helper/ScriptLoading'
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import {
     normalizeStyleForFundingSource
 } from '../../../ppcp-button/resources/js/modules/Helper/Style'
 import buttonModuleWatcher from "../../../ppcp-button/resources/js/modules/ButtonModuleWatcher";
 import BlockCheckoutMessagesBootstrap from "./Bootstrap/BlockCheckoutMessagesBootstrap";
+import {keysToCamelCase} from "../../../ppcp-button/resources/js/modules/Helper/Utils";
 const config = wc.wcSettings.getSetting('ppcp-gateway_data');
 
 window.ppcpFundingSource = config.fundingSource;
@@ -77,7 +82,7 @@ const PayPalComponent = ({
         window.ppcpContinuationFilled = true;
     }, [])
 
-    const createOrder = async () => {
+    const createOrder = async (data, actions) => {
         try {
             const res = await fetch(config.scriptData.ajax.create_order.endpoint, {
                 method: 'POST',
@@ -88,7 +93,8 @@ const PayPalComponent = ({
                     context: config.scriptData.context,
                     payment_method: 'ppcp-gateway',
                     funding_source: window.ppcpFundingSource ?? 'paypal',
-                    createaccount: false
+                    createaccount: false,
+                    payment_source: data.paymentSource
                 }),
             });
 
@@ -116,8 +122,13 @@ const PayPalComponent = ({
     };
 
     const createSubscription = async (data, actions) => {
+        let planId = config.scriptData.subscription_plan_id;
+        if (config.scriptData.variable_paypal_subscription_variation_from_cart !== '') {
+            planId = config.scriptData.variable_paypal_subscription_variation_from_cart;
+        }
+
         return actions.subscription.create({
-            'plan_id': config.scriptData.subscription_plan_id
+            'plan_id': planId
         });
     };
 
@@ -286,17 +297,48 @@ const PayPalComponent = ({
         onClick();
     };
 
-    let handleShippingChange = null;
-    let handleSubscriptionShippingChange = null;
+    const isVenmoAndVaultingEnabled = () => {
+        return window.ppcpFundingSource === 'venmo' && config.scriptData.vaultingEnabled;
+    }
+
+    let handleShippingOptionsChange = null;
+    let handleShippingAddressChange = null;
+    let handleSubscriptionShippingOptionsChange = null;
+    let handleSubscriptionShippingAddressChange = null;
+
     if (shippingData.needsShipping && !config.finalReviewEnabled) {
-        handleShippingChange = async (data, actions) => {
+        handleShippingOptionsChange = async (data, actions) => {
             try {
-                const shippingOptionId = data.selected_shipping_option?.id;
+                const shippingOptionId = data.selectedShippingOption?.id;
                 if (shippingOptionId) {
+                    await wp.data.dispatch('wc/store/cart').selectShippingRate(shippingOptionId);
                     await shippingData.setSelectedRates(shippingOptionId);
                 }
 
-                const address = paypalAddressToWc(data.shipping_address);
+                const res = await fetch(config.ajax.update_shipping.endpoint, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        nonce: config.ajax.update_shipping.nonce,
+                        order_id: data.orderID,
+                    })
+                });
+
+                const json = await res.json();
+
+                if (!json.success) {
+                    throw new Error(json.data.message);
+                }
+            } catch (e) {
+                console.error(e);
+
+                actions.reject();
+            }
+        };
+
+        handleShippingAddressChange = async (data, actions) => {
+            try {
+                const address = paypalAddressToWc(convertKeysToSnakeCase(data.shippingAddress));
 
                 await wp.data.dispatch('wc/store/cart').updateCustomerData({
                     shipping_address: address,
@@ -325,14 +367,23 @@ const PayPalComponent = ({
             }
         };
 
-        handleSubscriptionShippingChange = async (data, actions) => {
+        handleSubscriptionShippingOptionsChange = async (data, actions) => {
             try {
-                const shippingOptionId = data.selected_shipping_option?.id;
+                const shippingOptionId = data.selectedShippingOption?.id;
                 if (shippingOptionId) {
+                    await wp.data.dispatch('wc/store/cart').selectShippingRate(shippingOptionId);
                     await shippingData.setSelectedRates(shippingOptionId);
                 }
+            } catch (e) {
+                console.error(e);
 
-                const address = paypalAddressToWc(data.shipping_address);
+                actions.reject();
+            }
+        };
+
+        handleSubscriptionShippingAddressChange = async (data, actions) => {
+            try {
+                const address = paypalAddressToWc(convertKeysToSnakeCase(data.shippingAddress));
 
                 await wp.data.dispatch('wc/store/cart').updateCustomerData({
                     shipping_address: address,
@@ -442,7 +493,8 @@ const PayPalComponent = ({
                 onError={onClose}
                 createSubscription={createSubscription}
                 onApprove={handleApproveSubscription}
-                onShippingChange={handleSubscriptionShippingChange}
+                onShippingOptionsChange={handleSubscriptionShippingOptionsChange}
+                onShippingAddressChange={handleSubscriptionShippingAddressChange}
             />
         );
     }
@@ -456,9 +508,31 @@ const PayPalComponent = ({
             onError={onClose}
             createOrder={createOrder}
             onApprove={handleApprove}
-            onShippingChange={handleShippingChange}
+            onShippingOptionsChange={handleShippingOptionsChange}
+            onShippingAddressChange={handleShippingAddressChange}
         />
     );
+}
+
+const BlockEditorPayPalComponent = () => {
+
+    const urlParams = {
+        clientId: 'test',
+        ...config.scriptData.url_params,
+        dataNamespace: 'ppcp-blocks-editor-paypal-buttons',
+        components: 'buttons',
+    }
+    return (
+        <PayPalScriptProvider
+            options={urlParams}
+       >
+            <PayPalButtons
+                onClick={(data, actions) => {
+                    return false;
+                }}
+            />
+        </PayPalScriptProvider>
+    )
 }
 
 const features = ['products'];
@@ -525,7 +599,7 @@ if (block_enabled) {
             name: config.id,
             label: <div dangerouslySetInnerHTML={{__html: config.title}}/>,
             content: <PayPalComponent isEditing={false}/>,
-            edit: <PayPalComponent isEditing={true}/>,
+            edit: <BlockEditorPayPalComponent />,
             ariaLabel: config.title,
             canMakePayment: () => {
                 return true;
@@ -541,7 +615,7 @@ if (block_enabled) {
                 paymentMethodId: config.id,
                 label: <div dangerouslySetInnerHTML={{__html: config.title}}/>,
                 content: <PayPalComponent isEditing={false} fundingSource={fundingSource}/>,
-                edit: <PayPalComponent isEditing={true} fundingSource={fundingSource}/>,
+                edit: <BlockEditorPayPalComponent />,
                 ariaLabel: config.title,
                 canMakePayment: async () => {
                     if (!paypalScriptPromise) {

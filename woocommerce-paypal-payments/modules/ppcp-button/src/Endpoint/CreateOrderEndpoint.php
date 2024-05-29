@@ -246,6 +246,7 @@ class CreateOrderEndpoint implements EndpointInterface {
 			$this->parsed_request_data = $data;
 			$payment_method            = $data['payment_method'] ?? '';
 			$funding_source            = $data['funding_source'] ?? '';
+			$payment_source            = $data['payment_source'] ?? '';
 			$wc_order                  = null;
 			if ( 'pay-now' === $data['context'] ) {
 				$wc_order = wc_get_order( (int) $data['order_id'] );
@@ -261,7 +262,7 @@ class CreateOrderEndpoint implements EndpointInterface {
 				}
 				$this->purchase_unit = $this->purchase_unit_factory->from_wc_order( $wc_order );
 			} else {
-				$this->purchase_unit = $this->purchase_unit_factory->from_wc_cart( null, $this->handle_shipping_in_paypal );
+				$this->purchase_unit = $this->purchase_unit_factory->from_wc_cart( null, $this->should_handle_shipping_in_paypal( $payment_source ) );
 
 				// Do not allow completion by webhooks when started via non-checkout buttons,
 				// it is needed only for some APMs in checkout.
@@ -329,6 +330,21 @@ class CreateOrderEndpoint implements EndpointInterface {
 			if ( 'pay-now' === $data['context'] && is_a( $wc_order, \WC_Order::class ) ) {
 				$wc_order->update_meta_data( PayPalGateway::ORDER_ID_META_KEY, $order->id() );
 				$wc_order->update_meta_data( PayPalGateway::INTENT_META_KEY, $order->intent() );
+
+				$payment_source      = $order->payment_source();
+				$payment_source_name = $payment_source ? $payment_source->name() : null;
+				$payer               = $order->payer();
+				if (
+					$payer
+					&& $payment_source_name
+					&& in_array( $payment_source_name, PayPalGateway::PAYMENT_SOURCES_WITH_PAYER_EMAIL, true )
+				) {
+					$payer_email = $payer->email_address();
+					if ( $payer_email ) {
+						$wc_order->update_meta_data( PayPalGateway::ORDER_PAYER_EMAIL_META_KEY, $payer_email );
+					}
+				}
+
 				$wc_order->save_meta_data();
 
 				do_action( 'woocommerce_paypal_payments_woocommerce_order_created', $wc_order, $order );
@@ -594,5 +610,21 @@ class CreateOrderEndpoint implements EndpointInterface {
 			'id'        => $order->id(),
 			'custom_id' => $order->purchase_units()[0]->custom_id(),
 		);
+	}
+
+	/**
+	 * Checks if the shipping should be handled in PayPal popup.
+	 *
+	 * @param string $payment_source The payment source.
+	 * @return bool true if the shipping should be handled in PayPal popup, otherwise false.
+	 */
+	protected function should_handle_shipping_in_paypal( string $payment_source ): bool {
+		$is_vaulting_enabled = $this->settings->has( 'vault_enabled' ) && $this->settings->get( 'vault_enabled' );
+
+		if ( ! $this->handle_shipping_in_paypal ) {
+			return false;
+		}
+
+		return ! $is_vaulting_enabled || $payment_source !== 'venmo';
 	}
 }
