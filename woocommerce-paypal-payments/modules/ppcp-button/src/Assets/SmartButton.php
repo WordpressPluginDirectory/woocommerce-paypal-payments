@@ -32,6 +32,7 @@ use WooCommerce\PayPalCommerce\Button\Endpoint\SimulateCartEndpoint;
 use WooCommerce\PayPalCommerce\Button\Endpoint\StartPayPalVaultingEndpoint;
 use WooCommerce\PayPalCommerce\Button\Endpoint\ValidateCheckoutEndpoint;
 use WooCommerce\PayPalCommerce\Button\Helper\ContextTrait;
+use WooCommerce\PayPalCommerce\Button\Helper\DisabledFundingSources;
 use WooCommerce\PayPalCommerce\Button\Helper\MessagesApply;
 use WooCommerce\PayPalCommerce\Onboarding\Environment;
 use WooCommerce\PayPalCommerce\PayLaterBlock\PayLaterBlockModule;
@@ -226,6 +227,13 @@ class SmartButton implements SmartButtonInterface {
 	private $should_handle_shipping_in_paypal;
 
 	/**
+	 * List of funding sources to be disabled.
+	 *
+	 * @var DisabledFundingSources
+	 */
+	private $disabled_funding_sources;
+
+	/**
 	 * SmartButton constructor.
 	 *
 	 * @param string                 $module_url The URL to the module.
@@ -251,6 +259,7 @@ class SmartButton implements SmartButtonInterface {
 	 * @param PaymentTokensEndpoint  $payment_tokens_endpoint Payment tokens endpoint.
 	 * @param LoggerInterface        $logger The logger.
 	 * @param bool                   $should_handle_shipping_in_paypal Whether the shipping should be handled in PayPal.
+	 * @param DisabledFundingSources $disabled_funding_sources List of funding sources to be disabled.
 	 */
 	public function __construct(
 		string $module_url,
@@ -275,7 +284,8 @@ class SmartButton implements SmartButtonInterface {
 		bool $vault_v3_enabled,
 		PaymentTokensEndpoint $payment_tokens_endpoint,
 		LoggerInterface $logger,
-		bool $should_handle_shipping_in_paypal
+		bool $should_handle_shipping_in_paypal,
+		DisabledFundingSources $disabled_funding_sources
 	) {
 
 		$this->module_url                        = $module_url;
@@ -301,6 +311,7 @@ class SmartButton implements SmartButtonInterface {
 		$this->logger                            = $logger;
 		$this->payment_tokens_endpoint           = $payment_tokens_endpoint;
 		$this->should_handle_shipping_in_paypal  = $should_handle_shipping_in_paypal;
+		$this->disabled_funding_sources          = $disabled_funding_sources;
 	}
 
 	/**
@@ -818,7 +829,9 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 		 */
 		do_action( "ppcp_before_{$location_hook}_message_wrapper" );
 
-		$messages_placeholder = '<div class="ppcp-messages" data-partner-attribution-id="Woo_PPCP"></div>';
+		$bn_code = PPCP_PAYPAL_BN_CODE;
+
+		$messages_placeholder = '<div class="ppcp-messages" data-partner-attribution-id="' . esc_attr( $bn_code ) . '"></div>';
 
 		if ( is_array( $block_params ) && ( $block_params['blockName'] ?? false ) ) {
 			$this->render_after_block(
@@ -969,7 +982,6 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 	 */
 	public function dcc_renderer() {
 
-		$id = 'ppcp-hosted-fields';
 		if ( ! $this->can_render_dcc() ) {
 			return;
 		}
@@ -982,12 +994,11 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 		// phpcs:enable WordPress.WP.I18n.TextDomainMismatch
 
 		printf(
-			'<div id="%1$s" style="display:none;">
-						<button type="submit" class="button alt ppcp-dcc-order-button" style="display: none;">%2$s</button>
+			'<div id="ppcp-hosted-fields" style="display:none;">
+						<button id="place_order" type="submit" class="button alt ppcp-dcc-order-button wp-element-button" style="display: none;">%1$s</button>
 					</div>
                     <div id="payments-sdk__contingency-lightbox"></div>
                     <style id="ppcp-hide-dcc">.payment_method_ppcp-credit-card-gateway {display:none;}</style>',
-			esc_attr( $id ),
 			esc_html( $label )
 		);
 	}
@@ -1154,11 +1165,11 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 				),
 				'update_customer_shipping'       => array(
 					'shipping_options'       => array(
-						'endpoint' => '/wp-json/wc/store/cart/select-shipping-rate',
+						'endpoint' => home_url( UpdateShippingEndpoint::WC_STORE_API_ENDPOINT . 'select-shipping-rate' ),
 					),
 					'shipping_address'       => array(
-						'cart_endpoint'            => '/wp-json/wc/store/cart/',
-						'update_customer_endpoint' => '/wp-json/wc/store/v1/cart/update-customer/',
+						'cart_endpoint'            => home_url( UpdateShippingEndpoint::WC_STORE_API_ENDPOINT ),
+						'update_customer_endpoint' => home_url( UpdateShippingEndpoint::WC_STORE_API_ENDPOINT . 'update-customer' ),
 					),
 					'wp_rest_nonce'          => wp_create_nonce( 'wc_store_api' ),
 					'update_shipping_method' => \WC_AJAX::get_endpoint( 'update_shipping_method' ),
@@ -1400,54 +1411,18 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 			}
 		}
 
-		$disable_funding = $this->settings->has( 'disable_funding' )
-			? $this->settings->get( 'disable_funding' )
-			: array();
-
-		if ( ! is_checkout() ) {
-			$disable_funding[] = 'card';
-		}
-
-		$is_dcc_enabled = $this->settings->has( 'dcc_enabled' ) && $this->settings->get( 'dcc_enabled' );
-
-		$available_gateways       = WC()->payment_gateways->get_available_payment_gateways();
-		$is_separate_card_enabled = isset( $available_gateways[ CardButtonGateway::ID ] );
-
-		if ( is_checkout() && ( $is_dcc_enabled || $is_separate_card_enabled ) ) {
-			$key = array_search( 'card', $disable_funding, true );
-			if ( false !== $key ) {
-				unset( $disable_funding[ $key ] );
-			}
-		}
-
-		if ( in_array( $context, array( 'checkout-block', 'cart-block' ), true ) ) {
-			$disable_funding = array_merge(
-				$disable_funding,
-				array_diff(
-					array_keys( $this->all_funding_sources ),
-					array( 'venmo', 'paylater', 'paypal', 'card' )
-				)
-			);
-		}
-
-		if ( $this->is_free_trial_cart() ) {
-			$all_sources = array_keys( $this->all_funding_sources );
-			if ( $is_dcc_enabled || $is_separate_card_enabled ) {
-				$all_sources = array_diff( $all_sources, array( 'card' ) );
-			}
-			$disable_funding = $all_sources;
-		}
+		$disabled_funding_sources = $this->disabled_funding_sources->sources( $context );
 
 		$enable_funding = array( 'venmo' );
 
 		if ( $this->is_pay_later_button_enabled_for_location( $context ) ) {
 			$enable_funding[] = 'paylater';
 		} else {
-			$disable_funding[] = 'paylater';
+			$disabled_funding_sources[] = 'paylater';
 		}
 
-		$disable_funding = array_filter(
-			$disable_funding,
+		$disabled_funding_sources = array_filter(
+			$disabled_funding_sources,
 			/**
 			 * Make sure paypal is not sent in disable funding.
 			 *
@@ -1460,8 +1435,8 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 			}
 		);
 
-		if ( count( $disable_funding ) > 0 ) {
-			$params['disable-funding'] = implode( ',', array_unique( $disable_funding ) );
+		if ( count( $disabled_funding_sources ) > 0 ) {
+			$params['disable-funding'] = implode( ',', array_unique( $disabled_funding_sources ) );
 		}
 
 		if ( $this->is_free_trial_cart() ) {
@@ -1538,7 +1513,10 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 	private function bn_code_for_context( string $context ): string {
 
 		$codes = $this->bn_codes();
-		return ( isset( $codes[ $context ] ) ) ? $codes[ $context ] : 'Woo_PPCP';
+
+		$bn_code = PPCP_PAYPAL_BN_CODE;
+
+		return ( isset( $codes[ $context ] ) ) ? $codes[ $context ] : $bn_code;
 	}
 
 	/**
@@ -1546,13 +1524,15 @@ document.querySelector("#payment").before(document.querySelector(".ppcp-messages
 	 *
 	 * @return array
 	 */
-	private function bn_codes(): array {
+	private function bn_codes() : array {
+
+		$bn_code = PPCP_PAYPAL_BN_CODE;
 
 		return array(
-			'checkout'  => 'Woo_PPCP',
-			'cart'      => 'Woo_PPCP',
-			'mini-cart' => 'Woo_PPCP',
-			'product'   => 'Woo_PPCP',
+			'checkout'  => $bn_code,
+			'cart'      => $bn_code,
+			'mini-cart' => $bn_code,
+			'product'   => $bn_code,
 		);
 	}
 
