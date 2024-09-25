@@ -12,6 +12,7 @@ namespace WooCommerce\PayPalCommerce\ApiClient;
 use WooCommerce\PayPalCommerce\ApiClient\Authentication\ClientCredentials;
 use WooCommerce\PayPalCommerce\ApiClient\Authentication\SdkClientToken;
 use WooCommerce\PayPalCommerce\ApiClient\Authentication\UserIdToken;
+use WooCommerce\PayPalCommerce\ApiClient\Endpoint\Orders;
 use WooCommerce\PayPalCommerce\ApiClient\Endpoint\PaymentMethodTokensEndpoint;
 use WooCommerce\PayPalCommerce\ApiClient\Endpoint\PaymentTokensEndpoint;
 use WooCommerce\PayPalCommerce\ApiClient\Entity\CardAuthenticationResult;
@@ -238,6 +239,13 @@ return array(
 			$container->get( 'wcgateway.is-fraudnet-enabled' ),
 			$container->get( 'wcgateway.fraudnet' ),
 			$bn_code
+		);
+	},
+	'api.endpoint.orders'                            => static function ( ContainerInterface $container ): Orders {
+		return new Orders(
+			$container->get( 'api.host' ),
+			$container->get( 'api.bearer' ),
+			$container->get( 'woocommerce.logger.woocommerce' )
 		);
 	},
 	'api.endpoint.billing-agreements'                => static function ( ContainerInterface $container ): BillingAgreementsEndpoint {
@@ -1444,7 +1452,6 @@ return array(
 				'CN' => array(
 					'mastercard' => array(),
 					'visa'       => array(),
-					'amex'       => array(),
 				),
 				'CY' => array(
 					'mastercard' => array(),
@@ -1633,6 +1640,21 @@ return array(
 			'SI',
 			'ES',
 			'SE',
+		);
+	},
+
+	'api.paylater-countries'                         => static function ( ContainerInterface $container ) : array {
+		return apply_filters(
+			'woocommerce_paypal_payments_supported_paylater_countries',
+			array(
+				'US',
+				'DE',
+				'GB',
+				'FR',
+				'AU',
+				'IT',
+				'ES',
+			)
 		);
 	},
 	'api.order-helper'                               => static function( ContainerInterface $container ): OrderHelper {

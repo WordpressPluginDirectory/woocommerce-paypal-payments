@@ -24,6 +24,7 @@ return array(
     'WooCommerce\\PayPalCommerce\\PayLaterBlock\\' => array($baseDir . '/modules/ppcp-paylater-block/src'),
     'WooCommerce\\PayPalCommerce\\OrderTracking\\' => array($baseDir . '/modules/ppcp-order-tracking/src'),
     'WooCommerce\\PayPalCommerce\\Onboarding\\' => array($baseDir . '/modules/ppcp-onboarding/src'),
+    'WooCommerce\\PayPalCommerce\\LocalAlternativePaymentMethods\\' => array($baseDir . '/modules/ppcp-local-alternative-payment-methods/src'),
     'WooCommerce\\PayPalCommerce\\Googlepay\\' => array($baseDir . '/modules/ppcp-googlepay/src'),
     'WooCommerce\\PayPalCommerce\\Compat\\' => array($baseDir . '/modules/ppcp-compat/src'),
     'WooCommerce\\PayPalCommerce\\Common\\' => array($baseDir . '/lib/common'),

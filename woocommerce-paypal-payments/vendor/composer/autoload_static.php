@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit8d6d274f3742efb3f1278eee713257b4
+class ComposerStaticInit2fa610ed883c0868838d3008b7127cbf
 {
     public static $files = array (
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
@@ -33,6 +33,7 @@ class ComposerStaticInit8d6d274f3742efb3f1278eee713257b4
             'WooCommerce\\PayPalCommerce\\PayLaterBlock\\' => 41,
             'WooCommerce\\PayPalCommerce\\OrderTracking\\' => 41,
             'WooCommerce\\PayPalCommerce\\Onboarding\\' => 38,
+            'WooCommerce\\PayPalCommerce\\LocalAlternativePaymentMethods\\' => 58,
             'WooCommerce\\PayPalCommerce\\Googlepay\\' => 37,
             'WooCommerce\\PayPalCommerce\\Compat\\' => 34,
             'WooCommerce\\PayPalCommerce\\Common\\' => 34,
@@ -142,6 +143,10 @@ class ComposerStaticInit8d6d274f3742efb3f1278eee713257b4
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-onboarding/src',
         ),
+        'WooCommerce\\PayPalCommerce\\LocalAlternativePaymentMethods\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/ppcp-local-alternative-payment-methods/src',
+        ),
         'WooCommerce\\PayPalCommerce\\Googlepay\\' => 
         array (
             0 => __DIR__ . '/../..' . '/modules/ppcp-googlepay/src',
@@ -240,9 +245,9 @@ class ComposerStaticInit8d6d274f3742efb3f1278eee713257b4
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit8d6d274f3742efb3f1278eee713257b4::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit8d6d274f3742efb3f1278eee713257b4::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit8d6d274f3742efb3f1278eee713257b4::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit2fa610ed883c0868838d3008b7127cbf::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit2fa610ed883c0868838d3008b7127cbf::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit2fa610ed883c0868838d3008b7127cbf::$classMap;
 
         }, null, ClassLoader::class);
     }
