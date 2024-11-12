@@ -34,7 +34,7 @@ return array(
 		return new ApmApplies(
 			$container->get( 'applepay.supported-countries' ),
 			$container->get( 'applepay.supported-currencies' ),
-			$container->get( 'api.shop.currency' ),
+			$container->get( 'api.shop.currency.getter' ),
 			$container->get( 'api.shop.country' )
 		);
 	},
@@ -234,7 +234,6 @@ return array(
 				'DKK', // Danish Krone
 				'EUR', // Euro
 				'GBP', // British Pound Sterling
-				'HKD', // Hong Kong Dollar
 				'HUF', // Hungarian Forint
 				'ILS', // Israeli New Shekel
 				'JPY', // Japanese Yen
@@ -244,7 +243,6 @@ return array(
 				'PHP', // Philippine Peso
 				'PLN', // Polish Zloty
 				'SEK', // Swedish Krona
-				'SGD', // Singapore Dollar
 				'THB', // Thai Baht
 				'TWD', // New Taiwan Dollar
 				'USD',  // United States Dollar

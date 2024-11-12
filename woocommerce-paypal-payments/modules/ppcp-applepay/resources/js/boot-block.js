@@ -1,6 +1,7 @@
-import { useEffect, useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import { registerExpressPaymentMethod } from '@woocommerce/blocks-registry';
-import { loadPaypalScript } from '../../../ppcp-button/resources/js/modules/Helper/ScriptLoading';
+import { __ } from '@wordpress/i18n';
+import { loadPayPalScript } from '../../../ppcp-button/resources/js/modules/Helper/PayPalScriptLoading';
 import { cartHasSubscriptionProducts } from '../../../ppcp-blocks/resources/js/Helper/Subscription';
 import { loadCustomScript } from '@paypal/paypal-js';
 import CheckoutHandler from './Context/CheckoutHandler';
@@ -12,25 +13,22 @@ const ppcpConfig = ppcpData.scriptData;
 
 const buttonData = wc.wcSettings.getSetting( 'ppcp-applepay_data' );
 const buttonConfig = buttonData.scriptData;
+const namespace = 'ppcpBlocksPaypalApplepay';
 
 if ( typeof window.PayPalCommerceGateway === 'undefined' ) {
 	window.PayPalCommerceGateway = ppcpConfig;
 }
 
-const ApplePayComponent = ( props ) => {
-	const [ bootstrapped, setBootstrapped ] = useState( false );
+const ApplePayComponent = ( { isEditing } ) => {
 	const [ paypalLoaded, setPaypalLoaded ] = useState( false );
 	const [ applePayLoaded, setApplePayLoaded ] = useState( false );
-
-	const bootstrap = function () {
-		const ManagerClass = props.isEditing
-			? ApplePayManagerBlockEditor
-			: ApplePayManager;
-		const manager = new ManagerClass( buttonConfig, ppcpConfig );
-		manager.init();
-	};
+	const wrapperRef = useRef( null );
 
 	useEffect( () => {
+		if ( isEditing ) {
+			return;
+		}
+
 		// Load ApplePay SDK
 		loadCustomScript( { url: buttonConfig.sdk_url } ).then( () => {
 			setApplePayLoaded( true );
@@ -39,20 +37,42 @@ const ApplePayComponent = ( props ) => {
 		ppcpConfig.url_params.components += ',applepay';
 
 		// Load PayPal
-		loadPaypalScript( ppcpConfig, () => {
-			setPaypalLoaded( true );
-		} );
-	}, [] );
+		loadPayPalScript( namespace, ppcpConfig )
+			.then( () => {
+				setPaypalLoaded( true );
+			} )
+			.catch( ( error ) => {
+				console.error( 'Failed to load PayPal script: ', error );
+			} );
+	}, [ isEditing ] );
 
 	useEffect( () => {
-		if ( ! bootstrapped && paypalLoaded && applePayLoaded ) {
-			setBootstrapped( true );
-			bootstrap();
+		if ( isEditing || ! paypalLoaded || ! applePayLoaded ) {
+			return;
 		}
-	}, [ paypalLoaded, applePayLoaded ] );
+
+		const ManagerClass = isEditing
+			? ApplePayManagerBlockEditor
+			: ApplePayManager;
+
+		buttonConfig.reactWrapper = wrapperRef.current;
+
+		new ManagerClass( namespace, buttonConfig, ppcpConfig );
+	}, [ paypalLoaded, applePayLoaded, isEditing ] );
+
+	if ( isEditing ) {
+		return (
+			<ApplePayManagerBlockEditor
+				namespace={ namespace }
+				buttonConfig={ buttonConfig }
+				ppcpConfig={ ppcpConfig }
+			/>
+		);
+	}
 
 	return (
 		<div
+			ref={ wrapperRef }
 			id={ buttonConfig.button.wrapper.replace( '#', '' ) }
 			className="ppcp-button-apm ppcp-button-applepay"
 		></div>
@@ -70,6 +90,11 @@ if (
 
 registerExpressPaymentMethod( {
 	name: buttonData.id,
+	title: `PayPal - ${ buttonData.title }`,
+	description: __(
+		'Eligible users will see the PayPal button.',
+		'woocommerce-paypal-payments'
+	),
 	label: <div dangerouslySetInnerHTML={ { __html: buttonData.title } } />,
 	content: <ApplePayComponent isEditing={ false } />,
 	edit: <ApplePayComponent isEditing={ true } />,

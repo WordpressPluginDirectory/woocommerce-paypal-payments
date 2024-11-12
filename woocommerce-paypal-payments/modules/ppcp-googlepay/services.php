@@ -36,7 +36,7 @@ return array(
 		return new ApmApplies(
 			$container->get( 'googlepay.supported-countries' ),
 			$container->get( 'googlepay.supported-currencies' ),
-			$container->get( 'api.shop.currency' ),
+			$container->get( 'api.shop.currency.getter' ),
 			$container->get( 'api.shop.country' )
 		);
 	},
@@ -149,7 +149,6 @@ return array(
 				'DKK', // Danish Krone
 				'EUR', // Euro
 				'GBP', // British Pound Sterling
-				'HKD', // Hong Kong Dollar
 				'HUF', // Hungarian Forint
 				'ILS', // Israeli New Shekel
 				'JPY', // Japanese Yen
@@ -159,7 +158,6 @@ return array(
 				'PHP', // Philippine Peso
 				'PLN', // Polish Zloty
 				'SEK', // Swedish Krona
-				'SGD', // Singapore Dollar
 				'THB', // Thai Baht
 				'TWD', // New Taiwan Dollar
 				'USD',  // United States Dollar
@@ -174,10 +172,10 @@ return array(
 			$container->get( 'googlepay.sdk_url' ),
 			$container->get( 'ppcp.asset-version' ),
 			$container->get( 'session.handler' ),
+			$container->get( 'wc-subscriptions.helper' ),
 			$container->get( 'wcgateway.settings' ),
 			$container->get( 'onboarding.environment' ),
 			$container->get( 'wcgateway.settings.status' ),
-			$container->get( 'api.shop.currency' ),
 			$container->get( 'woocommerce.logger.woocommerce' )
 		);
 	},

@@ -1,36 +1,15 @@
-/* global paypal */
+import ApplepayButton from './Block/components/ApplePayButton';
 
-import ApplePayButton from './ApplepayButton';
-
-class ApplePayManagerBlockEditor {
-	constructor( buttonConfig, ppcpConfig ) {
-		this.buttonConfig = buttonConfig;
-		this.ppcpConfig = ppcpConfig;
-		this.applePayConfig = null;
-	}
-
-	init() {
-		( async () => {
-			await this.config();
-		} )();
-	}
-
-	async config() {
-		try {
-			this.applePayConfig = await paypal.Applepay().config();
-
-			const button = new ApplePayButton(
-				this.ppcpConfig.context,
-				null,
-				this.buttonConfig,
-				this.ppcpConfig
-			);
-
-			button.init( this.applePayConfig );
-		} catch ( error ) {
-			console.error( 'Failed to initialize Apple Pay:', error );
-		}
-	}
-}
+const ApplePayManagerBlockEditor = ( {
+	namespace,
+	buttonConfig,
+	ppcpConfig,
+} ) => (
+	<ApplepayButton
+		namespace={ namespace }
+		buttonConfig={ buttonConfig }
+		ppcpConfig={ ppcpConfig }
+	/>
+);
 
 export default ApplePayManagerBlockEditor;

@@ -1,5 +1,52 @@
 *** Changelog ***
 
+= 2.9.4 - 2024-11-11 =
+* Fix - Apple Pay button preview missing in Standard payment and Advanced Processing tabs #2755
+* Fix - Set "Sold individually" only for subscription connected to PayPal #2710
+* Fix - Ensure Google Pay button does not appear for subscriptions #2718
+* Fix - PayPal Subscriptions API renewal order not created in WooCommerce #2612
+* Fix - Apple Pay button disappears on Classic Checkout #2722
+* Fix - Google Pay and Apple Pay as separate gateways does not show button when checkout remove from button locations #2756
+* Fix - Add GW refund support for Apple Pay #2746
+* Fix - PayPal Subscriptions cancel and suspend from Subscriptions list page does not work #2632
+* Fix - Displaying of HTML tags in product title on choosing a product for tracking (2801) #2701
+* Fix - Payment with OXXO cause continuation state for next payment #2702
+* Fix - Fix problems with autoptimize plugin #2705
+* Fix - Missing custom field PayPal Transaction Fee for OXXO #2700
+* Enhancement - Add void button #2678
+* Enhancement - Use basic redirect gateway when checkout smart buttons disabled #2714
+* Enhancement - Receive button properties from the Checkout Block #2448
+* Enhancement - Run PPEC\DeactivateNote query only in backend #2719
+* Enhancement - Prevent plugin use for "Send only" countries #2721
+* Enhancement - Do not add pay later button in editor #2570
+* Enhancement - Axo: Remove the submit button when Fastlane is disabled #2720
+* Enhancement - Sync the PayPal product page button state to Apple/Google Pay buttons, show alerts #2742
+
+= 2.9.3 - 2024-10-15 =
+* Fix - Multi-currency support #2667
+* Fix - "0.00" amount in Google Pay for virtual products #2636
+* Fix - Unsuccessfully payment from product page with Apple Pay button #2643
+* Fix - Button Unlinking PayPal Subscriptions plan does not showing for simple subscription #2618
+* Fix - Declare tokenization for ACDC only when vaulting enabled #2581
+* Fix - Classic shortcode block type checks #2608
+* Fix - PUI error in editor #2580
+* Fix - Add a new namespaced script loader for ApplePay #2682 #2675
+* Fix - Axo Block: Fix the Fastlane modal info message text overflow issue #2663
+* Fix - Add Custom Placeholder Handling when rendering the card fields #2651
+* Fix - Use the PayPal icons instead of WC ones #2639
+* Fix - Google Pay preview config and style #2661
+* Fix - Improve context detection #2631
+* Fix - Check that get_the_ID is valid before using #2573
+* Fix - Axo Block: Always display the Fastlane watermark in the includeAdditionalInfo mode #2690
+* Fix - Axo Block: Display card fields for authenticated cardless profiles #2672
+* Fix - Google Pay: Fix button preview in the editor #2688
+* Fix - ACDC gateway not visible on the block Checkout for logged-out users #2693
+* Enhancement - Enhancement - Add Fastlane support for Checkout block
+* Enhancement - Multiple calls to POST /v1/oauth2/token?grant_type=client_credentials&response_type=id_token #2671
+* Enhancement - Fastlane update shipping options & taxes when changing address #2665
+* Enhancement - Axo: Remove Axo from the Checkout block in the editor and add an ACDC card preview #2662
+* Enhancement - Set email when creating order for express payment #2577
+
 = 2.9.2 - 2024-10-01 =
 * Enhancement - Add Fastlane support for Classic Checkout
 * Fix - Fatal error when Pay Later messaging configurator was disabled with a code snippet

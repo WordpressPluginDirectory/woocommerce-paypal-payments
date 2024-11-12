@@ -101,7 +101,7 @@ class CompatModule implements ServiceModule, ExtendingModule, ExecutableModule {
 		add_action(
 			'woocommerce_init',
 			function() {
-				if ( is_callable( array( WC(), 'is_wc_admin_active' ) ) && WC()->is_wc_admin_active() && class_exists( 'Automattic\WooCommerce\Admin\Notes\Notes' ) ) {
+				if ( is_admin() && is_callable( array( WC(), 'is_wc_admin_active' ) ) && WC()->is_wc_admin_active() && class_exists( 'Automattic\WooCommerce\Admin\Notes\Notes' ) ) {
 					PPEC\DeactivateNote::init();
 				}
 			}
@@ -340,7 +340,7 @@ class CompatModule implements ServiceModule, ExtendingModule, ExecutableModule {
 			'wp',
 			function() {
 				$page_id = get_the_ID();
-				if ( ! $page_id || ! CartCheckoutDetector::has_elementor_checkout( $page_id ) ) {
+				if ( ! is_numeric( $page_id ) || ! CartCheckoutDetector::has_elementor_checkout( (int) $page_id ) ) {
 					return;
 				}
 

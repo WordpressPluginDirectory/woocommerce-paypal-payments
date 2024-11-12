@@ -1,34 +1,51 @@
 import { loadCustomScript } from '@paypal/paypal-js';
-import { loadPaypalScript } from '../../../ppcp-button/resources/js/modules/Helper/ScriptLoading';
+import { loadPayPalScript } from '../../../ppcp-button/resources/js/modules/Helper/PayPalScriptLoading';
 import ApplePayManager from './ApplepayManager';
 import { setupButtonEvents } from '../../../ppcp-button/resources/js/modules/Helper/ButtonRefreshHelper';
 
-( function ( { buttonConfig, ppcpConfig, jQuery } ) {
-	let manager;
+( function ( { buttonConfig, ppcpConfig } ) {
+	const namespace = 'ppcpPaypalApplepay';
 
-	const bootstrap = function () {
-		manager = new ApplePayManager( buttonConfig, ppcpConfig );
-		manager.init();
-	};
-
-	setupButtonEvents( function () {
-		if ( manager ) {
-			manager.reinit();
-		}
-	} );
-
-	document.addEventListener( 'DOMContentLoaded', () => {
-		if (
-			typeof buttonConfig === 'undefined' ||
-			typeof ppcpConfig === 'undefined'
-		) {
+	function bootstrapPayButton() {
+		if ( ! buttonConfig || ! ppcpConfig ) {
 			return;
 		}
-		const isMiniCart = ppcpConfig.mini_cart_buttons_enabled;
-		const isButton = jQuery( '#' + buttonConfig.button.wrapper ).length > 0;
+
+		const manager = new ApplePayManager(
+			namespace,
+			buttonConfig,
+			ppcpConfig
+		);
+
+		setupButtonEvents( function () {
+			manager.reinit();
+		} );
+	}
+
+	function bootstrap() {
+		bootstrapPayButton();
+		// Other Apple Pay bootstrapping could happen here.
+	}
+
+	document.addEventListener( 'DOMContentLoaded', () => {
+		if ( ! buttonConfig || ! ppcpConfig ) {
+			/*
+			 * No PayPal buttons present on this page, but maybe a bootstrap module needs to be
+			 * initialized. Skip loading the SDK or gateway configuration, and directly initialize
+			 * the module.
+			 */
+			bootstrap();
+
+			return;
+		}
+
+		const usedInMiniCart = ppcpConfig.mini_cart_buttons_enabled;
+		const pageHasButton =
+			null !== document.getElementById( buttonConfig.button.wrapper );
+
 		// If button wrapper is not present then there is no need to load the scripts.
 		// minicart loads later?
-		if ( ! isMiniCart && ! isButton ) {
+		if ( ! usedInMiniCart && ! pageHasButton ) {
 			return;
 		}
 
@@ -50,13 +67,16 @@ import { setupButtonEvents } from '../../../ppcp-button/resources/js/modules/Hel
 		} );
 
 		// Load PayPal
-		loadPaypalScript( ppcpConfig, () => {
-			paypalLoaded = true;
-			tryToBoot();
-		} );
+		loadPayPalScript( namespace, ppcpConfig )
+			.then( () => {
+				paypalLoaded = true;
+				tryToBoot();
+			} )
+			.catch( ( error ) => {
+				console.error( 'Failed to load PayPal script: ', error );
+			} );
 	} );
 } )( {
 	buttonConfig: window.wc_ppcp_applepay,
 	ppcpConfig: window.PayPalCommerceGateway,
-	jQuery: window.jQuery,
 } );

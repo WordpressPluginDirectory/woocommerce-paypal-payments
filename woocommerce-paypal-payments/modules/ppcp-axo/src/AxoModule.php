@@ -18,6 +18,7 @@ use WooCommerce\PayPalCommerce\Axo\Gateway\AxoGateway;
 use WooCommerce\PayPalCommerce\Button\Assets\SmartButtonInterface;
 use WooCommerce\PayPalCommerce\Button\Helper\ContextTrait;
 use WooCommerce\PayPalCommerce\Onboarding\Render\OnboardingOptionsRenderer;
+use WooCommerce\PayPalCommerce\Session\SessionHandler;
 use WooCommerce\PayPalCommerce\Vendor\Inpsyde\Modularity\Module\ExecutableModule;
 use WooCommerce\PayPalCommerce\Vendor\Inpsyde\Modularity\Module\ExtendingModule;
 use WooCommerce\PayPalCommerce\Vendor\Inpsyde\Modularity\Module\ModuleClassNameIdTrait;
@@ -33,10 +34,19 @@ use WooCommerce\PayPalCommerce\WcGateway\Helper\DCCGatewayConfiguration;
 
 /**
  * Class AxoModule
+ *
+ * @psalm-suppress MissingConstructor
  */
 class AxoModule implements ServiceModule, ExtendingModule, ExecutableModule {
 	use ModuleClassNameIdTrait;
 	use ContextTrait;
+
+	/**
+	 * The session handler for ContextTrait.
+	 *
+	 * @var SessionHandler|null
+	 */
+	protected ?SessionHandler $session_handler;
 
 	/**
 	 * {@inheritDoc}
@@ -173,6 +183,8 @@ class AxoModule implements ServiceModule, ExtendingModule, ExecutableModule {
 			function () use ( $c ) {
 				$module = $this;
 
+				$this->session_handler = $c->get( 'session.handler' );
+
 				$settings = $c->get( 'wcgateway.settings' );
 				assert( $settings instanceof Settings );
 
@@ -184,7 +196,7 @@ class AxoModule implements ServiceModule, ExtendingModule, ExecutableModule {
 				// Check if the module is applicable, correct country, currency, ... etc.
 				if ( ! $is_paypal_enabled
 					|| ! $c->get( 'axo.eligible' )
-					|| 'continuation' === $c->get( 'button.context' )
+					|| $this->is_paypal_continuation()
 					|| $subscription_helper->cart_contains_subscription()
 				) {
 					return;
@@ -210,8 +222,10 @@ class AxoModule implements ServiceModule, ExtendingModule, ExecutableModule {
 				// Render submit button.
 				add_action(
 					$manager->checkout_button_renderer_hook(),
-					static function () use ( $c, $manager ) {
-						$manager->render_checkout_button();
+					static function () use ( $c, $manager, $module ) {
+						if ( $module->should_render_fastlane( $c ) ) {
+							$manager->render_checkout_button();
+						}
 					}
 				);
 
@@ -366,7 +380,8 @@ class AxoModule implements ServiceModule, ExtendingModule, ExecutableModule {
 		return ! is_user_logged_in()
 			&& CartCheckoutDetector::has_classic_checkout()
 			&& $dcc_configuration->use_fastlane()
-			&& ! $this->is_excluded_endpoint();
+			&& ! $this->is_excluded_endpoint()
+			&& is_checkout();
 	}
 
 	/**
