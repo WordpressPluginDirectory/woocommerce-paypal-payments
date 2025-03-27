@@ -1,1 +1,5 @@
-<?php return array('dependencies' => array('react', 'wc-blocks-registry', 'wp-element', 'wp-i18n'), 'version' => 'c26926f076779aff1099');
+<?php
+
+namespace {
+    return array('dependencies' => array('react', 'wc-blocks-registry', 'wp-element', 'wp-i18n'), 'version' => '7a8b41bbe53c98888494');
+}
