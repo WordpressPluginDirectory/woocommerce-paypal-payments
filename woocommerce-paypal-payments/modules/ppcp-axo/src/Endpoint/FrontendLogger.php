@@ -6,7 +6,7 @@
  * @package WooCommerce\PayPalCommerce\Button\Endpoint
  */
 declare (strict_types=1);
-namespace WooCommerce\PayPalCommerce\Axo;
+namespace WooCommerce\PayPalCommerce\Axo\Endpoint;
 
 use Exception;
 use WooCommerce\PayPalCommerce\Vendor\Psr\Log\LoggerInterface;
@@ -15,7 +15,7 @@ use WooCommerce\PayPalCommerce\Button\Endpoint\RequestData;
 /**
  * Class FrontendLoggerEndpoint
  */
-class FrontendLoggerEndpoint implements EndpointInterface
+class FrontendLogger implements EndpointInterface
 {
     const ENDPOINT = 'ppc-frontend-logger';
     /**
